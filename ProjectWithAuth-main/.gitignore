@@ -1,0 +1,6 @@
+target/
+*.db
+*.log
+*.h2
+.classpath
+.factorypath
