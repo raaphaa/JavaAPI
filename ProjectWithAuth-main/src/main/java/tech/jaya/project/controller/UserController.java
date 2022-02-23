@@ -7,6 +7,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException.BadRequest;
 import org.springframework.web.client.HttpClientErrorException.Unauthorized;
 import org.springframework.web.client.HttpServerErrorException.InternalServerError;
+import org.springframework.web.multipart.MultipartFile;
+
+import br.com.escritorioAgil.entity.Login;
+import br.com.escritorioAgil.entity.Pessoas;
+import br.com.escritorioAgil.entity.DTO.PessoaDTO;
+
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.swagger.annotations.ApiOperation;
@@ -60,4 +68,65 @@ public class UserController {
 			return ResponseEntity.internalServerError().build();
 		}
 	}
+	
+	   @GetMapping("/pessoas")
+	    public List<Pessoas> findAll() {
+	        return pessoaService.findAll();
+	    }
+
+	    @GetMapping("pessoasPorId/{id}")
+	    public Pessoas findById(@PathVariable Integer id) {
+	        return pessoaService.findById(id);
+	    }
+
+	    @PostMapping("/cadastrarPessoas")
+	    @ResponseStatus(HttpStatus.CREATED)
+	    public ResponseEntity <Pessoas> save(@RequestBody PessoaDTO dto) {
+	        Pessoas pessoas = pessoaService.save(dto);
+	        if (pessoas == null){
+	            return ResponseEntity.badRequest().build();
+	        }
+	        return ResponseEntity.ok(pessoas);
+	    }
+
+	    @PutMapping("/atualizarPessoas/{id}")
+	    public Pessoas updatePessoa(@RequestBody PessoaDTO dto, @PathVariable Integer id){
+	        
+	        return pessoaService.update(id, dto);
+
+	    }
+
+	    @DeleteMapping("/delatarPessoas/{id}")
+	    public void delete(@PathVariable Integer id){
+	    	
+	        pessoaService.delete(id);
+	    }
+
+		
+		@PostMapping("/login")
+		public ResponseEntity<Pessoas> login(@RequestBody Login login) {
+			Pessoas pessoa = pessoaRepository.findByEmailAndSenha(login.getemail(), login.getSenha());
+			
+			if (pessoa == null) {
+				return ResponseEntity.notFound().build();
+			}
+			
+			return ResponseEntity.ok(pessoa);
+		}
+		
+		
+		@PostMapping("/image/{userId}")
+		public ResponseEntity<String> uploadFile(@RequestParam MultipartFile file, @PathVariable Integer userId) {
+			String imagePath = pessoaService.uploadImage(file, userId);
+			
+			if (imagePath.equals("Not Found")) return ResponseEntity.notFound().build();
+					
+			return ResponseEntity.ok(imagePath);
+		}
+		
+		@DeleteMapping("/image/{id}")
+		public ResponseEntity<Void> deleteAttachments(@PathVariable Integer id) {
+			pessoaService.deleteImage(id);
+			return ResponseEntity.noContent().build();
+		}
 }
