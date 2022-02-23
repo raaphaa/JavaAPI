@@ -1,18 +1,15 @@
 package tech.jaya.project.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import br.com.escritorioAgil.entity.Pessoas;
-import br.com.escritorioAgil.entity.DTO.PessoaDTO;
 import tech.jaya.project.domain.User;
+import tech.jaya.project.dto.UserAuthenticatedDTO;
 import tech.jaya.project.dto.UserResgisterDTO;
 import tech.jaya.project.exception.NotFoundException;
 import tech.jaya.project.repository.UserRepository;
@@ -47,99 +44,78 @@ public class UserService {
 		}
 	}
 	
-	public List<Pessoas> findAll() {
-        return pessoaRepository.findAll();
-    }
-
-    public Pessoas findById(Integer id) {
-        Optional<Pessoas> entity = pessoaRepository.findById(id);
-        if (entity.isPresent()){
-        	entity.get().setSenha(null);
-            return entity.get();
-        }
-
-        throw new RuntimeException();
-    }
-
-    public Pessoas save(PessoaDTO dto) {
-
-        pessoaRepository.findByEmail(dto.getEmail());
-        Optional <Pessoas> pessoasOptional= Optional.ofNullable(pessoaRepository.findByEmail(dto.getEmail()));
-
-        if (pessoasOptional.isPresent()){
-            return null;
-        }
-
-
-        Pessoas pessoas = new Pessoas();
-        pessoas.setNome(dto.getNome());
-        pessoas.setEmail(dto.getEmail());
-        pessoas.setTelefone(dto.getTelefone());
-        pessoas.setSenha(dto.getSenha());
-        pessoas.setFoto(dto.getFoto());
-        pessoas.setFuncao(dto.getFuncao());
-
-        return pessoaRepository.save(pessoas);
-
-    }
-
-    public Pessoas update(Integer id, PessoaDTO dto) {
-    	Optional<Pessoas> pessoas = pessoaRepository.findById(id);
-    	
-        pessoas.get().setNome(dto.getNome());
-        pessoas.get().setEmail(dto.getEmail());
-        pessoas.get().setTelefone(dto.getTelefone());
+	public List<UserAuthenticatedDTO> findAll() throws NotFoundException {
         
-        if (dto.getSenha().equals("same1")) {
-        	pessoas.get().setSenha(pessoas.get().getSenha());
-        	
-		}else {
-			pessoas.get().setSenha(dto.getSenha());	
+        List<UserAuthenticatedDTO> userDTO = new ArrayList<>();
+		List<User> user = repository.findAll();
+
+		
+		if (user.isEmpty()) {
+			
+			logger.error("A Not Found error occurs.");
+			
+			throw new NotFoundException("User not found.");
+
+		} else {
+
+			for (User us : user) {
+				UserAuthenticatedDTO dto = new UserAuthenticatedDTO(us);
+				userDTO.add(dto);
+			}
+			logger.info("Request for user " + userDTO + " was successful.");
+			
+			return userDTO;
 		}
+    }
+	
+    public  List<UserAuthenticatedDTO> findById(Long id) throws NotFoundException {
+    	
+    	List<UserAuthenticatedDTO> userDTO = new ArrayList<>();
+ 		List<User> user = repository.findById(id);
+
+ 		if (user.isEmpty()) {
+ 			
+ 			logger.error("A Not Found error occurs.");
+ 			
+ 			throw new NotFoundException("User not found.");
+
+ 		} else {
+
+ 			for (User us : user) {
+ 				UserAuthenticatedDTO dto = new UserAuthenticatedDTO(us);
+ 				userDTO.add(dto);
+ 			}
+ 			logger.info("Request for user " + userDTO + " was successful.");
+ 			
+ 			return userDTO;
+ 		}
+    }
+// ************ 
+    public List<UserAuthenticatedDTO> update(Long id, UserAuthenticatedDTO dto) throws NotFoundException {
+    	
+    	List<User> user = repository.findById(id);
+    	
+    	if (user.isEmpty()) {
+			
+			logger.error("A Not Found error occurs.");
+			
+			throw new NotFoundException("User not found.");
+
+		} else {
+
+    	user.get().setName(dto.getName());
+    	user.get().setEmail(dto.getEmail());
+        user.get().setLogin(dto.getLogin());
         
+        logger.info("Update Request was successful.");
+		
+        return repository.save(user.get());
         
-        pessoas.get().setFoto(dto.getFoto());
-        pessoas.get().setFuncao(dto.getFuncao());
-        return pessoaRepository.save(pessoas.get());
-
-
-
+		}
     }
 
-    public void delete(Integer id) {
-        pessoaRepository.deleteById(id);
+    public User delete(Long id) throws NotFoundException {
+    	repository.deleteById(id);
+    	return null;
     }
-    
-    
-    public String uploadImage(MultipartFile file, Integer userId) {
-    	Optional<Pessoas> pessoa = pessoaRepository.findById(userId);
-    	
-    	if (pessoa.isEmpty()) return "Not Found";
-    	
-    	if (pessoa.get().getFoto() != null) {
-    		this.deleteImage(userId);
-    	}
-    	
-		String filePath = disk.saveFile(file, "/images");
-		
-		pessoa.get().setFoto(filePath);
-		pessoaRepository.save(pessoa.get());
-		
-		return filePath;
-	}
-    
-    public void deleteImage(Integer id) {
-    	Optional<Pessoas> pessoa = pessoaRepository.findById(id);
-		
-		if (pessoa.isEmpty()) return;
-		if (pessoa.get().getFoto() == null) return;
-		
-		
-		disk.deleteFile(pessoa.get().getFoto(), "images");
-		pessoa.get().setFoto(null);
-		
-
-		pessoaRepository.save(pessoa.get());
-	}
-    
 }
